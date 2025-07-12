@@ -14,7 +14,7 @@ This file describes the steps to set up this project.
 
 ## GitHub Repo Setup
 
-### Import Local Repo to GitHub
+### Import local repo to GitHub
 
 ```shell
 git init -b main
@@ -24,3 +24,9 @@ gh repo create --homepage "https://github.com/rubensgomes" --public useraccount-
 git remote add origin https://github.com/rubensgomes/useraccount-ms
 git push -u origin main
 ```
+
+### Create the very first 0.0.1 release
+
+1. Go to the [repo](https://github.com/rubensgomes/useraccount-ms) and create  a `release` branch. Click on the `drop-down` to `View all branches` and createthe `release` branch from main.
+2. Commit any local changes and push `git commit -m "initial release" -a; git push`
+3. Run `./gradlew release`

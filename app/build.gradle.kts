@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.register
+
 plugins {
   id("distribution")
   id("idea")
@@ -6,6 +8,7 @@ plugins {
   `jvm-test-suite`
   id("version-catalog")
   id("com.dorongold.task-tree") version "4.0.1"
+  id("io.freefair.lombok") version "8.14"
   // org.jetbrains.kotlin.jvm
   alias(ctlg.plugins.kotlin.jvm)
   // org.jetbrains.kotlin.plugin.spring
@@ -34,10 +37,12 @@ dependencies {
   // ########## compileOnly ####################################################
 
   // ########## implementation #################################################
+  implementation("org.springframework.boot:spring-boot-starter-logging")
   implementation("org.springframework.boot:spring-boot-starter-web")
   implementation("org.springframework.boot:spring-boot-starter-validation")
-  // io.swagger.core.v3:swagger-annotations
-  implementation(ctlg.swagger.annotations)
+
+  // org.springdoc:springdoc-openapi-starter-webmvc-u
+  implementation(ctlg.springdoc.openapi.starter.webmvc.ui)
   // jakarta.validation:jakarta.validation-api
   implementation(ctlg.jakarta.validation.api)
 
@@ -49,6 +54,8 @@ dependencies {
   testImplementation("org.springframework.boot:spring-boot-starter-test")
   // bundle engine that implements the jakarta API validation
   testImplementation(ctlg.bundles.jakarta.bean.validator)
+
+  // ########## testRuntimeOnly ###############################################
 }
 
 // ----------------------------------------------------------------------------
@@ -65,18 +72,6 @@ dependencies {
 // https://docs.gradle.org/current/userguide/distribution_plugin.html
 
 distributions { main { distributionBaseName = "helloworld-ms" } }
-
-// ----------------------------------------------------------------------------
-// --------------- >>> Gradle IDEA Plugin <<< ---------------------------------
-// ----------------------------------------------------------------------------
-// https://docs.gradle.org/current/userguide/idea_plugin.html
-
-idea {
-  module {
-    isDownloadJavadoc = true
-    isDownloadSources = true
-  }
-}
 
 // ----------------------------------------------------------------------------
 // --------------- >>> Gradle jaCoCo Plugin <<< -------------------------------
@@ -101,6 +96,45 @@ tasks.jacocoTestReport {
 // ----------------------------------------------------------------------------
 // https://docs.gradle.org/current/userguide/java_plugin.html
 
+// 1. Set up integration test source set
+sourceSets {
+  create("intTest") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+    java { setSrcDirs(listOf("src/intTest/java")) }
+  }
+}
+
+// 2. Make the integration test configuration extend from implementation
+val intTestImplementation by configurations.getting
+
+configurations["intTestImplementation"].extendsFrom(configurations.implementation.get())
+
+val intTestRuntimeOnly by configurations.getting
+
+configurations["intTestRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
+
+// 3. Attach all the unit test dependencies to the integration tests as well
+dependencies { intTestImplementation("org.springframework.boot:spring-boot-starter-test") }
+
+// 4. Add a task to run integration tests
+val integrationTest =
+    tasks.register<Test>("intTest") {
+      description = "Runs integration tests."
+      group = "verification"
+
+      testClassesDirs = sourceSets["intTest"].output.classesDirs
+      classpath = sourceSets["intTest"].runtimeClasspath
+      shouldRunAfter("test")
+
+      useJUnitPlatform()
+
+      testLogging { events("passed") }
+    }
+
+// 5. Include Integration Test in the check Lifecycle Task
+tasks.check { dependsOn(integrationTest) }
+
 java {
   withSourcesJar()
   withJavadocJar()
@@ -122,6 +156,19 @@ tasks.jar {
             "Build-Jdk" to System.getProperty("java.home"),
             "Created-By" to
                 "${System.getProperty("java.version")} (${System.getProperty("java.vendor")})"))
+  }
+}
+
+// ----------------------------------------------------------------------------
+// --------------- >>> Gradle IDEA Plugin <<< ---------------------------------
+// ----------------------------------------------------------------------------
+// https://docs.gradle.org/current/userguide/idea_plugin.html
+// must be defined after gradle java plugin sourcesets
+idea {
+  module {
+    isDownloadJavadoc = true
+    isDownloadSources = true
+    testSources.from(sourceSets["intTest"].java.srcDirs)
   }
 }
 
@@ -227,8 +274,8 @@ tasks.bootBuildImage {
   val repository: String = project.findProperty("docker.image.repository").toString()
   //  val version: String = project.findProperty("version").toString()
   // use "latest" tag to keep things simple
-  val version: String = "latest"
-  val tag: String = "$registry/$repository:$version"
+  val version = "latest"
+  val tag = "$registry/$repository:$version"
   tags.set(listOf(tag))
   imageName.set("$repository:$version")
   imagePlatform.set("linux/amd64")

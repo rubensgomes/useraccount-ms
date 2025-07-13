@@ -1,4 +1,4 @@
-package com.rubensgomes;
+package com.rubensgomes.useraccount;
 
 /**
  * The App class is the main entry point of the application.

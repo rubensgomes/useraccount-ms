@@ -23,7 +23,7 @@ dependencyResolutionManagement {
 
     versionCatalogs {
         create("ctlg") {
-            from("com.rubensgomes:gradle-catalog:0.0.42")
+            from("com.rubensgomes:gradle-catalog:0.0.44")
         }
     }
 }

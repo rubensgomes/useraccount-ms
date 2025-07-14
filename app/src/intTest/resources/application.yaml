@@ -1,0 +1,16 @@
+############################ test #############################################
+## --------------- >>> logging (begin) <<< -------------------------------------
+logging:
+  group:
+    tomcat: "org.apache.catalina,org.apache.coyote,org.apache.tomcat"
+  level:
+    com:
+      rubensgomes:
+        useraccount: "debug"
+    web: "info"
+    org.springframework.http: "trace"
+    org.springframework.web: "trace"
+## --------------- >>> logging (end) <<< ---------------------------------------
+local:
+  server:
+    port: 9999
